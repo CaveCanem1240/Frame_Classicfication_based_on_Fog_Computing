@@ -1,0 +1,61 @@
+树莓派搭建本地服务器
+
+
+路由器部分：
+  设置路由器为自动模式作为局域网同时为本地提供外网连接
+ 
+ 
+树莓派部分：
+ 注：需要更改的文件在本级目录下都可以找到
+1、连接至路由器wifi
+
+2、配置静态IP以保证服务器重启之后内网IP不会发生变化，方便项目内的RaspberrPi以及minecraft端与服务器连接
+    更改文件 /etc/network/interfaces 将服务器固定为192.168.0.100
+    sudo ifconfig wlan0 192.168.0.100 netmask 255.255.255.0 使更改及时生效
+    
+3、安装DHCP服务
+    sudo apt-get install isc-dhcp-server
+    更改文件 /etc/default/isc-dhcp-server 为接入网络设备的分配192.168.0.xxx格式的地址
+    更改文件 /etc/dhcp/dhcpd.conf
+    sudo service isc-dhcp-server start 使DHCP服务生效
+    
+4、开启服务器内核转发
+    更改文件 /etc/sysctl.conf
+    sudo sysctl -p 使改动生效
+    更改文件 /etc/rc.local 使内核转发在服务器每次开机时自动启动
+5、安装SMB服务设置服务器公共存储空间
+
+    sudo apt-get install samba samba-common-bin
+    sudo nano /etc/samba/smb.conf添加共享区域路径 设置访问权限
+    在文件末添加：
+      [Share_dir_Name]
+      path = your_path
+      valid users = pi
+      browseable =yes
+      public = yes
+      writable = yes
+    sudo smbpasswd -a pi 设置共享区域密码
+    sudo /etc/init.d/samba restart 重启smb服务应用更改
+
+安装DHPC时可能出现的问题：
+  1、使用journalctl -xe查看错误信息
+      报错信息为dhcpd.pid已经存在 则 sudo rm -rf /var/run/dhcpd.pid
+  2、树莓派wifi无法使用
+      在文件末尾添加
+      allow-hotplug wlan0
+      iface wlan1 inet manual
+          wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+      保存重启后注释掉这三行
+
+
+
+
+服务器连接方法：
+1、设备连接到服务器所在的局域网下
+2、linux用户通过文件管理器的局域网连接/192/168.0.100
+          通过终端打开后可查看路径
+   windows用户点击文件资源管理其左侧目录中的网络
+          在顶部的地址栏输入\\192.168.0.100访问
+   RaspberryPi用户通过文件管理器顶部工具栏的转到到网络，点击任意工作组，地址栏变为smb:///后
+          在地址栏中删除一个'/'字符，输入192.168.0.100即可访问，在共享目录下新建文件夹右键终端打开，可查看文件路径
+   注意：三种设备下的服务器文件地址都非地址栏地址
